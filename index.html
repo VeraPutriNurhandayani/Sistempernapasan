@@ -1,0 +1,1666 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>IPAS Interaktif: Sistem Pernapasan & Sensor Gerak</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Fredoka & Nunito untuk kesan edukatif yang ramah anak -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Tone.js untuk Efek Suara Interaktif -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+
+    <style>
+        body {
+            font-family: 'Nunito', sans-serif;
+            background: #0f172a;
+            color: #f8fafc;
+            overflow-x: hidden;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        h1, h2, h3, .font-title {
+            font-family: 'Fredoka', sans-serif;
+        }
+        /* Animasi Paru-paru & Elemen */
+        @keyframes breathe {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.08); }
+        }
+        .animate-breathe {
+            animation: breathe 4s ease-in-out infinite;
+        }
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(1000%); }
+        }
+        .scanner-line {
+            height: 4px;
+            background: linear-gradient(90deg, transparent, #38bdf8, #818cf8, #38bdf8, transparent);
+            box-shadow: 0 0 12px #38bdf8;
+            animation: scanline 4s linear infinite;
+        }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #38bdf8;
+            border-radius: 9999px;
+        }
+        /* Glassmorphism */
+        .glass-panel {
+            background: rgba(30, 41, 59, 0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(148, 163, 184, 0.2);
+        }
+        .organ-hotspot {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .organ-hotspot:hover, .organ-hotspot.active {
+            filter: drop-shadow(0 0 12px #38bdf8);
+            transform: scale(1.06);
+        }
+        /* Efek Tombol Game */
+        .btn-3d {
+            transition: all 0.15s ease;
+            box-shadow: 0 6px 0 rgba(0,0,0,0.35);
+        }
+        .btn-3d:active {
+            transform: translateY(4px);
+            box-shadow: 0 2px 0 rgba(0,0,0,0.35);
+        }
+        /* Animasi Splash Screen Zoom-In Halus 6 Detik */
+        @keyframes smoothZoomIn {
+            0% {
+                transform: scale(0.82);
+                opacity: 0;
+            }
+            20% {
+                opacity: 1;
+            }
+            85% {
+                transform: scale(1.03);
+                opacity: 1;
+            }
+            100% {
+                transform: scale(1.06);
+                opacity: 0;
+            }
+        }
+        .animate-splash-zoom {
+            animation: smoothZoomIn 6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+        }
+        @keyframes progress6s {
+            0% { width: 0%; }
+            100% { width: 100%; }
+        }
+        .animate-progress-6s {
+            animation: progress6s 6s linear forwards;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900">
+
+    <!-- ========================================== -->
+    <!-- A. SPLASH SCREEN (INTRO) - 6 DETIK         -->
+    <!-- ========================================== -->
+    <div id="splash-screen" class="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-center p-6 text-center transition-opacity duration-700">
+        <div class="animate-splash-zoom max-w-2xl mx-auto flex flex-col items-center">
+            <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-xl shadow-cyan-500/25 mb-6">
+                <i class="fa-solid fa-lungs text-4xl text-white"></i>
+            </div>
+            <p class="text-xs sm:text-sm font-bold uppercase tracking-[0.25em] text-cyan-600 mb-2">Media Pembelajaran Interaktif IPAS</p>
+            <h1 class="text-2xl sm:text-4xl md:text-5xl font-bold text-slate-900 leading-tight mb-3">
+                Created by Vera Putri Nurhandayani
+            </h1>
+            <p class="text-lg sm:text-2xl font-bold text-slate-600 tracking-wide">
+                Guru SD UPTD SDN 1 BANDANHURIP
+            </p>
+            <!-- Indikator Bar Halus 6 Detik -->
+            <div class="w-48 sm:w-64 h-1.5 bg-slate-100 rounded-full overflow-hidden mt-8">
+                <div class="h-full bg-gradient-to-r from-cyan-500 to-blue-600 animate-progress-6s rounded-full"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- POP-UP AWAL (WELCOME MODAL)                -->
+    <!-- ========================================== -->
+    <div id="welcome-popup" class="fixed inset-0 z-[90] hidden bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+        <div class="glass-panel border-2 border-cyan-400/50 rounded-3xl max-w-lg w-full p-6 sm:p-8 text-center shadow-2xl transform transition-all scale-95 opacity-0" id="welcome-popup-card">
+            <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-tr from-cyan-400 to-emerald-400 text-slate-950 flex items-center justify-center text-4xl shadow-lg shadow-cyan-500/30 mb-4 animate-breathe">
+                <i class="fa-solid fa-hand-sparkles"></i>
+            </div>
+            <span class="px-3 py-1 text-xs font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 rounded-full">
+                Selamat Datang Anak-Anak Hebat!
+            </span>
+            <h2 class="text-2xl sm:text-3xl font-bold text-white mt-3 mb-2">
+                Petualangan Sensor IPAS
+            </h2>
+            <p class="text-xs sm:text-sm text-amber-300 font-semibold mb-4">
+                Karya: Ibu Vera Putri Nurhandayani (UPTD SDN 1 BANDANHURIP)
+            </p>
+            <div class="bg-slate-900/80 rounded-2xl p-4 border border-slate-700 text-left space-y-2 mb-6 text-xs sm:text-sm text-slate-200">
+                <p class="font-bold text-cyan-300"><i class="fa-solid fa-circle-check mr-1.5"></i> Apa yang akan kita pelajari hari ini?</p>
+                <p>1. Memahami <strong>fungsi sistem pencernaan</strong> dengan benar dan kerjasamanya dalam menghasilkan energi.</p>
+                <p>2. Mengenal <strong>organ-organ sistem pernapasan</strong> manusia beserta simulasi bernapas.</p>
+                <p>3. Bermain <strong>Game Sensor Gerak Tangan</strong> di Papan Interaktif, Laptop, Tablet, atau HP!</p>
+            </div>
+            <button onclick="closeWelcomePopup()" class="btn-3d w-full py-3.5 px-6 rounded-2xl bg-gradient-to-r from-cyan-400 to-emerald-400 hover:from-cyan-300 hover:to-emerald-300 text-slate-950 font-extrabold text-base sm:text-lg flex items-center justify-center gap-2">
+                <i class="fa-solid fa-rocket"></i> Mulai Petualangan Belajar!
+            </button>
+        </div>
+    </div>
+
+    <!-- HEADER & NAVIGASI UTAMA (Ramah Papan Interaktif Digital / Smartboard) -->
+    <header class="sticky top-0 z-40 glass-panel border-b border-cyan-500/30 px-4 py-3 shadow-lg">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <!-- Brand Title -->
+            <div class="flex items-center gap-3">
+                <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 animate-breathe">
+                    <i class="fa-solid fa-lungs text-2xl text-white"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-400/30 rounded-full">IPAS SD/MI & SMP</span>
+                        <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> Sensor Ready
+                        </span>
+                    </div>
+                    <h1 class="text-xl md:text-2xl font-bold text-white tracking-wide">BioMotion: Sistem Pernapasan</h1>
+                </div>
+            </div>
+
+            <!-- Menu Navigasi Tab (Besar & Mudah Disentuh di Smartboard/HP) -->
+            <nav class="flex items-center gap-2 sm:gap-3 w-full lg:w-auto justify-center">
+                <button onclick="switchTab('tujuan')" id="tab-tujuan" class="nav-btn btn-3d flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm md:text-base bg-cyan-500 text-slate-950">
+                    <i class="fa-solid fa-bullseye"></i>
+                    <span>Tujuan</span>
+                </button>
+                <button onclick="switchTab('materi')" id="tab-materi" class="nav-btn btn-3d flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm md:text-base bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600">
+                    <i class="fa-solid fa-book-medical"></i>
+                    <span>Materi & Simulasi</span>
+                </button>
+                <button onclick="switchTab('game')" id="tab-game" class="nav-btn btn-3d flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm md:text-base bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950">
+                    <i class="fa-solid fa-hand-sparkles"></i>
+                    <span>Game Sensor Gerak</span>
+                </button>
+            </nav>
+
+            <!-- Kontrol Audio & Layar Penuh -->
+            <div class="hidden sm:flex items-center gap-2">
+                <button onclick="toggleMute()" id="btn-sound" class="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 transition" title="Suara Efek">
+                    <i class="fa-solid fa-volume-high text-lg"></i>
+                </button>
+                <button onclick="toggleFullScreen()" class="p-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-cyan-400 border border-slate-700 transition" title="Layar Penuh (Cocok untuk Papan Interaktif)">
+                    <i class="fa-solid fa-expand text-lg"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- KONTEN UTAMA -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col">
+
+        <!-- ========================================== -->
+        <!-- SECTION 1: BERANDA & TUJUAN PEMBELAJARAN   -->
+        <!-- ========================================== -->
+        <section id="section-tujuan" class="space-y-6 animate-fadeIn">
+            <!-- Hero Banner -->
+            <div class="relative rounded-3xl overflow-hidden glass-panel border border-cyan-500/30 p-6 md:p-10 shadow-2xl">
+                <div class="absolute -right-16 -bottom-16 w-72 h-72 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                    <div class="lg:col-span-7 space-y-5">
+                        <div class="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-indigo-500/20 border border-indigo-400/40 text-indigo-300 text-sm font-bold">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> Media Pembelajaran Interaktif Multi-Perangkat
+                        </div>
+                        <h2 class="text-3xl md:text-5xl font-bold leading-tight text-white">
+                            Jelajahi Rahasia <span class="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-emerald-400">Sistem Pernapasan</span> dengan Sensor Gerakan!
+                        </h2>
+                        <p class="text-slate-300 text-base md:text-lg leading-relaxed">
+                            Didesain khusus untuk digunakan di <strong>Papan Interaktif Digital (Smartboard)</strong> di depan kelas, maupun di <strong>iPad, Tablet, Laptop, dan Smartphone</strong>. Gunakan lambaian tangan di depan kamera atau sentuhan jari untuk menangkap molekul udara!
+                        </p>
+
+                        <!-- Kartu Tujuan Pembelajaran (Sesuai Permintaan User) -->
+                        <div class="bg-gradient-to-r from-amber-500/20 via-orange-500/15 to-cyan-500/20 border-2 border-amber-400/60 rounded-2xl p-5 shadow-lg space-y-3">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-xl shrink-0">
+                                    <i class="fa-solid fa-star"></i>
+                                </div>
+                                <h3 class="text-xl font-bold text-amber-300">Tujuan Pembelajaran Utama</h3>
+                            </div>
+                            <div class="space-y-2 pl-2 border-l-4 border-amber-400/60 ml-3">
+                                <p class="text-white font-bold text-lg bg-slate-900/60 p-3 rounded-xl border border-amber-400/30">
+                                    <i class="fa-solid fa-check-circle text-emerald-400 mr-2"></i>
+                                    1. Murid memahami fungsi sistem pencernaan dengan benar.
+                                </p>
+                                <p class="text-slate-200 font-semibold text-base bg-slate-900/40 p-3 rounded-xl border border-cyan-400/20">
+                                    <i class="fa-solid fa-check-circle text-cyan-400 mr-2"></i>
+                                    2. Murid mengenal organ-organ sistem pernapasan manusia, mekanisme inspirasi & ekspirasi, serta keterkaitannya dengan sistem pencernaan dalam menghasilkan energi bagi tubuh (Oksigen + Nutrisi Makanan = Energi).
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-wrap gap-4 pt-2">
+                            <button onclick="switchTab('materi')" class="btn-3d px-6 py-4 rounded-2xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-lg flex items-center gap-3">
+                                <i class="fa-solid fa-book-open-reader text-xl"></i> Pelajari Materi Dulu
+                            </button>
+                            <button onclick="switchTab('game')" class="btn-3d px-6 py-4 rounded-2xl bg-gradient-to-r from-emerald-400 to-teal-500 hover:from-emerald-300 hover:to-teal-400 text-slate-950 font-bold text-lg flex items-center gap-3">
+                                <i class="fa-solid fa-video text-xl"></i> Mulai Game Sensor Gerak
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Ilustrasi Interaktif & Info Keterkaitan Organ -->
+                    <div class="lg:col-span-5 flex flex-col items-center">
+                        <div class="w-full glass-panel rounded-3xl p-6 border border-cyan-400/30 relative overflow-hidden">
+                            <div class="text-center mb-4">
+                                <span class="text-xs font-bold uppercase tracking-widest text-cyan-400">Jembatan Konsep IPAS</span>
+                                <h4 class="text-xl font-bold text-white">Mengapa Pernapasan & Pencernaan Bekerja Sama?</h4>
+                            </div>
+
+                            <div class="grid grid-cols-3 gap-2 items-center text-center my-4">
+                                <div class="bg-cyan-500/15 border border-cyan-400/40 rounded-2xl p-3">
+                                    <i class="fa-solid fa-lungs text-3xl text-cyan-400 mb-2 animate-breathe"></i>
+                                    <p class="font-bold text-sm text-white">Sistem Pernapasan</p>
+                                    <p class="text-xs text-cyan-200 mt-1">Menghirup Oksigen ($\text{O}_2$) dari udara</p>
+                                </div>
+                                <div class="flex flex-col items-center justify-center">
+                                    <div class="w-10 h-10 rounded-full bg-amber-400 text-slate-950 font-extrabold flex items-center justify-center text-xl shadow-lg">+</div>
+                                    <span class="text-[11px] text-amber-300 font-bold mt-1">Bertemu di Sel Tubuh</span>
+                                </div>
+                                <div class="bg-orange-500/15 border border-orange-400/40 rounded-2xl p-3">
+                                    <i class="fa-solid fa-utensils text-3xl text-orange-400 mb-2"></i>
+                                    <p class="font-bold text-sm text-white">Sistem Pencernaan</p>
+                                    <p class="text-xs text-orange-200 mt-1">Mengolah makanan jadi Sari Makanan (Glukosa)</p>
+                                </div>
+                            </div>
+
+                            <div class="bg-emerald-500/20 border border-emerald-400/40 rounded-2xl p-4 text-center">
+                                <div class="flex items-center justify-center gap-2 text-emerald-300 font-bold text-base">
+                                    <i class="fa-solid fa-bolt text-amber-400 text-xl"></i>
+                                    <span>Hasilnya: ENERGI untuk Beraktivitas!</span>
+                                </div>
+                                <p class="text-xs text-slate-300 mt-1">
+                                    Selain itu, di tenggorokan terdapat katup <strong>Epiglotis</strong> yang menjaga agar makanan dari saluran pencernaan tidak masuk ke saluran pernapasan (tidak tersedak).
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panduan Perangkat -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-panel p-4 rounded-2xl border border-slate-700 flex items-start gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0 text-xl">
+                        <i class="fa-solid fa-chalkboard-user"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm">Papan Interaktif Digital</h4>
+                        <p class="text-xs text-slate-300 mt-1">Murid bisa berdiri di depan kamera smartboard dan melambaikan tangan, atau langsung menyentuh layar besar.</p>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-slate-700 flex items-start gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0 text-xl">
+                        <i class="fa-solid fa-tablet-screen-button"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm">iPad & Tablet</h4>
+                        <p class="text-xs text-slate-300 mt-1">Gunakan kamera depan untuk membaca gerakan tangan atau gunakan mode sentuh multi-touch yang responsif.</p>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-slate-700 flex items-start gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0 text-xl">
+                        <i class="fa-solid fa-laptop"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm">Laptop & PC</h4>
+                        <p class="text-xs text-slate-300 mt-1">Webcam laptop akan menampilkan radar matriks sensor hijau-biru yang mendeteksi posisi tangan murid secara langsung.</p>
+                    </div>
+                </div>
+                <div class="glass-panel p-4 rounded-2xl border border-slate-700 flex items-start gap-3">
+                    <div class="w-11 h-11 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0 text-xl">
+                        <i class="fa-solid fa-mobile-screen"></i>
+                    </div>
+                    <div>
+                        <h4 class="font-bold text-white text-sm">Smartphone (HP)</h4>
+                        <p class="text-xs text-slate-300 mt-1">Tampilan otomatis menyesuaikan layar HP dengan kontrol sensor kamera selfie maupun usapan jari.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- SECTION 2: MATERI SISTEM PERNAPASAN        -->
+        <!-- ========================================== -->
+        <section id="section-materi" class="hidden space-y-6 animate-fadeIn">
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                <!-- Kolom Kiri: Peta Anatomi Interaktif SVG -->
+                <div class="lg:col-span-5 glass-panel rounded-3xl p-5 border border-cyan-500/30 flex flex-col items-center">
+                    <div class="w-full flex items-center justify-between mb-3">
+                        <h3 class="text-xl font-bold text-cyan-300 flex items-center gap-2">
+                            <i class="fa-solid fa-magnifying-glass-chart"></i> Peta Organ Interaktif
+                        </h3>
+                        <span class="text-xs bg-cyan-500/20 text-cyan-200 px-3 py-1 rounded-full font-semibold">Klik Nomor Organ!</span>
+                    </div>
+
+                    <!-- SVG Anatomi Sistem Pernapasan -->
+                    <div class="relative w-full max-w-[340px] aspect-[3/4] bg-slate-900/90 rounded-2xl border border-slate-700 p-4 flex items-center justify-center overflow-hidden">
+                        <svg viewBox="0 0 300 380" class="w-full h-full">
+                            <!-- Siluet Kepala & Badan -->
+                            <path d="M115,30 C115,10 185,10 185,40 C185,55 195,65 195,75 C195,85 182,90 182,100 L182,125 L235,145 C255,155 265,180 265,220 L265,350 L35,350 L35,220 C35,180 45,155 65,145 L118,125 L118,100 C118,90 105,85 105,75 C105,65 115,55 115,30 Z" 
+                                  fill="#1e293b" stroke="#334155" stroke-width="3"/>
+
+                            <!-- 1. Rongga Hidung -->
+                            <g onclick="selectOrgan(0)" class="organ-hotspot" id="hotspot-0">
+                                <path d="M110,65 Q135,60 152,75 L152,88 Q130,85 112,82 Z" fill="#38bdf8" opacity="0.85"/>
+                                <circle cx="118" cy="73" r="13" fill="#0284c7" stroke="#fff" stroke-width="2"/>
+                                <text x="118" y="78" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">1</text>
+                            </g>
+
+                            <!-- 2. Faring & Epiglotis (Persimpangan Pernapasan & Pencernaan) -->
+                            <g onclick="selectOrgan(1)" class="organ-hotspot" id="hotspot-1">
+                                <path d="M142,78 L162,78 L162,115 L142,115 Z" fill="#a855f7" opacity="0.85"/>
+                                <circle cx="175" cy="96" r="13" fill="#7e22ce" stroke="#fff" stroke-width="2"/>
+                                <text x="175" y="101" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">2</text>
+                            </g>
+
+                            <!-- 3. Laring & Trakea (Batang Tenggorokan) -->
+                            <g onclick="selectOrgan(2)" class="organ-hotspot" id="hotspot-2">
+                                <rect x="142" y="116" width="20" height="75" rx="6" fill="#2dd4bf" opacity="0.9"/>
+                                <!-- Cincin tulang rawan -->
+                                <line x1="143" y1="130" x2="161" y2="130" stroke="#0f172a" stroke-width="2"/>
+                                <line x1="143" y1="142" x2="161" y2="142" stroke="#0f172a" stroke-width="2"/>
+                                <line x1="143" y1="154" x2="161" y2="154" stroke="#0f172a" stroke-width="2"/>
+                                <line x1="143" y1="166" x2="161" y2="166" stroke="#0f172a" stroke-width="2"/>
+                                <circle cx="125" cy="150" r="13" fill="#0d9488" stroke="#fff" stroke-width="2"/>
+                                <text x="125" y="155" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">3</text>
+                            </g>
+
+                            <!-- Paru-Paru Kanan & Kiri (5) -->
+                            <g id="svg-lungs" class="origin-center transition-transform duration-700">
+                                <g onclick="selectOrgan(4)" class="organ-hotspot" id="hotspot-4">
+                                    <!-- Paru Kanan -->
+                                    <path d="M135,175 C95,165 65,200 65,260 C65,295 80,305 110,300 C130,296 138,280 138,255 Z" fill="#f43f5e" opacity="0.85"/>
+                                    <!-- Paru Kiri -->
+                                    <path d="M168,175 C208,165 238,200 238,260 C238,295 223,305 193,300 C173,296 165,280 165,255 Z" fill="#f43f5e" opacity="0.85"/>
+                                </g>
+
+                                <!-- 4. Bronkus & Bronkiolus -->
+                                <g onclick="selectOrgan(3)" class="organ-hotspot" id="hotspot-3">
+                                    <path d="M152,185 L112,220 M112,220 L92,245 M112,220 L118,255 M152,185 L192,220 M192,220 L212,245 M192,220 L185,255" stroke="#fde047" stroke-width="6" stroke-linecap="round" fill="none"/>
+                                    <circle cx="152" cy="202" r="13" fill="#ca8a04" stroke="#fff" stroke-width="2"/>
+                                    <text x="152" y="207" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">4</text>
+                                </g>
+
+                                <!-- 5. Alveolus (Gelembung Paru) -->
+                                <g onclick="selectOrgan(4)" class="organ-hotspot">
+                                    <circle cx="90" cy="252" r="9" fill="#fda4af" stroke="#fff" stroke-width="1.5"/>
+                                    <circle cx="212" cy="252" r="13" fill="#e11d48" stroke="#fff" stroke-width="2"/>
+                                    <text x="212" y="257" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">5</text>
+                                </g>
+                            </g>
+
+                            <!-- 6. Diafragma & Hubungan Pencernaan di Bawahnya -->
+                            <g onclick="selectOrgan(5)" class="organ-hotspot" id="hotspot-5">
+                                <path id="svg-diaphragm" d="M62,315 Q152,285 242,315" stroke="#fb923c" stroke-width="10" stroke-linecap="round" fill="none"/>
+                                <circle cx="152" cy="322" r="13" fill="#ea580c" stroke="#fff" stroke-width="2"/>
+                                <text x="152" y="327" text-anchor="middle" fill="#fff" font-size="13" font-weight="bold">6</text>
+                            </g>
+                        </svg>
+                    </div>
+
+                    <!-- Simulasi Tarik & Hembuskan Napas -->
+                    <div class="w-full mt-4 bg-slate-900/80 p-4 rounded-2xl border border-slate-700">
+                        <p class="text-xs text-center text-slate-300 mb-3 font-semibold">Simulasi Mekanisme Pernapasan Dada & Perut:</p>
+                        <div class="grid grid-cols-2 gap-3">
+                            <button onclick="simulateBreath('in')" class="btn-3d py-2.5 px-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-sm flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-arrow-down-long"></i> Inspirasi (Hirup)
+                            </button>
+                            <button onclick="simulateBreath('out')" class="btn-3d py-2.5 px-3 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-sm flex items-center justify-center gap-2">
+                                <i class="fa-solid fa-arrow-up-long"></i> Ekspirasi (Hembus)
+                            </button>
+                        </div>
+                        <p id="breath-status" class="text-xs text-center text-cyan-300 mt-2.5 font-medium">
+                            Klik tombol di atas untuk melihat gerakan paru-paru & otot diafragma!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Kolom Kanan: Detail Organ & Penjelasan Pencernaan + Pernapasan -->
+                <div class="lg:col-span-7 flex flex-col justify-between gap-6">
+                    <!-- Kartu Detail Organ yang Dipilih -->
+                    <div class="glass-panel rounded-3xl p-6 border border-cyan-500/30 flex-1 flex flex-col justify-between">
+                        <div>
+                            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-4 mb-4">
+                                <div class="flex items-center gap-3">
+                                    <span id="organ-badge" class="w-10 h-10 rounded-xl bg-cyan-500 text-slate-950 font-extrabold flex items-center justify-center text-lg">1</span>
+                                    <div>
+                                        <span class="text-xs uppercase tracking-wider text-cyan-400 font-bold">Organ Sistem Pernapasan</span>
+                                        <h3 id="organ-title" class="text-2xl font-bold text-white">Rongga Hidung</h3>
+                                    </div>
+                                </div>
+                                <div class="flex gap-1.5">
+                                    <button onclick="prevOrgan()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-600"><i class="fa-solid fa-chevron-left"></i></button>
+                                    <button onclick="nextOrgan()" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-600"><i class="fa-solid fa-chevron-right"></i></button>
+                                </div>
+                            </div>
+
+                            <!-- Isi Penjelasan -->
+                            <div class="space-y-4">
+                                <div class="bg-slate-900/70 p-4 rounded-2xl border border-slate-700/80">
+                                    <h4 class="text-sm font-bold text-cyan-300 uppercase mb-1"><i class="fa-solid fa-circle-info mr-1"></i> Fungsi Utama:</h4>
+                                    <p id="organ-desc" class="text-slate-200 text-base leading-relaxed">
+                                        Tempat pertama masuknya udara. Di dalam hidung terdapat rambut-rambut halus untuk menyaring kotoran/debu, serta selaput lendir untuk mengatur suhu dan kelembapan udara.
+                                    </p>
+                                </div>
+
+                                <div class="bg-indigo-950/60 p-4 rounded-2xl border border-indigo-500/30">
+                                    <h4 class="text-sm font-bold text-indigo-300 uppercase mb-1"><i class="fa-solid fa-lightbulb mr-1"></i> Fakta Unik & Keterkaitan Tubuh:</h4>
+                                    <p id="organ-fact" class="text-slate-200 text-sm leading-relaxed">
+                                        Bernapas melalui hidung jauh lebih sehat daripada melalui mulut (saluran pencernaan), karena mulut tidak memiliki bulu penyaring debu seperti hidung!
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Daftar Cepat 6 Organ -->
+                        <div class="mt-6 pt-4 border-t border-slate-700/80">
+                            <p class="text-xs font-bold uppercase text-slate-400 mb-2.5">Pilih Cepat Organ:</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                <button onclick="selectOrgan(0)" class="organ-pill px-3 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950 text-left truncate">1. Rongga Hidung</button>
+                                <button onclick="selectOrgan(1)" class="organ-pill px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 text-left truncate">2. Faring & Epiglotis</button>
+                                <button onclick="selectOrgan(2)" class="organ-pill px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 text-left truncate">3. Laring & Trakea</button>
+                                <button onclick="selectOrgan(3)" class="organ-pill px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 text-left truncate">4. Bronkus</button>
+                                <button onclick="selectOrgan(4)" class="organ-pill px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 text-left truncate">5. Paru & Alveolus</button>
+                                <button onclick="selectOrgan(5)" class="organ-pill px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 text-left truncate">6. Otot Diafragma</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Box Khusus Tujuan Pembelajaran: Fungsi Sistem Pencernaan vs Pernapasan -->
+                    <div class="glass-panel rounded-3xl p-5 border-2 border-amber-400/50 bg-gradient-to-r from-amber-500/10 to-emerald-500/10">
+                        <div class="flex items-start gap-3">
+                            <div class="w-11 h-11 rounded-2xl bg-amber-400 text-slate-950 flex items-center justify-center font-bold text-xl shrink-0">
+                                <i class="fa-solid fa-apple-whole"></i>
+                            </div>
+                            <div class="space-y-1.5">
+                                <h4 class="font-bold text-amber-300 text-base">Pojok Pemahaman: Fungsi Sistem Pencernaan & Pernapasan</h4>
+                                <p class="text-xs sm:text-sm text-slate-200 leading-relaxed">
+                                    <strong>Fungsi Sistem Pencernaan</strong> adalah menghancurkan makanan (di mulut & lambung), menyerap sari-sari makanan/nutrisi di <strong>usus halus</strong>, dan membuang sisa makanan melalui <strong>usus besar & anus</strong>. Sari makanan ini kemudian dibakar menggunakan <strong>Oksigen ($\text{O}_2$) dari Sistem Pernapasan</strong> untuk menghasilkan energi agar kita bisa belajar dan bermain!
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </section>
+
+        <!-- ========================================== -->
+        <!-- SECTION 3: GAME SENSOR GERAK INTERAKTIF    -->
+        <!-- ========================================== -->
+        <section id="section-game" class="hidden space-y-4 animate-fadeIn">
+            
+            <!-- Top Control & Status Bar Game -->
+            <div class="glass-panel rounded-2xl p-3 sm:p-4 border border-emerald-500/40 flex flex-wrap items-center justify-between gap-3">
+                <!-- Mode Permainan -->
+                <div class="flex items-center gap-2">
+                    <button onclick="setGameMode('catch')" id="mode-catch" class="btn-3d px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm bg-emerald-500 text-slate-950 flex items-center gap-2">
+                        <i class="fa-solid fa-hand-dots"></i> Mode 1: Tangkap Oksigen ($\text{O}_2$)
+                    </button>
+                    <button onclick="setGameMode('quiz')" id="mode-quiz" class="btn-3d px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm bg-slate-800 text-slate-200 border border-slate-600 flex items-center gap-2">
+                        <i class="fa-solid fa-brain"></i> Mode 2: Kuis Sensor Gerak
+                    </button>
+                </div>
+
+                <!-- Status Kamera & Sensor -->
+                <div class="flex flex-wrap items-center gap-3">
+                    <div class="flex items-center gap-2 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-cyan-500/30">
+                        <span id="sensor-dot" class="w-3 h-3 rounded-full bg-amber-400"></span>
+                        <span id="sensor-label" class="text-xs font-bold text-cyan-300">Sensor: Sentuh / Mouse (Klik 'Aktifkan Kamera' untuk Sensor Tangan)</span>
+                    </div>
+
+                    <button onclick="toggleCameraSensor()" id="btn-camera" class="btn-3d px-4 py-2 rounded-xl font-bold text-xs sm:text-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 flex items-center gap-2">
+                        <i class="fa-solid fa-camera"></i> <span>Aktifkan Sensor Kamera</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Area Utama Game & Radar Sensor -->
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
+                
+                <!-- Layar Utama Game (AR Camera Canvas) -->
+                <div class="lg:col-span-9 relative rounded-3xl overflow-hidden border-2 border-cyan-400/50 bg-slate-950 shadow-2xl min-h-[420px] sm:min-h-[520px] flex items-center justify-center">
+                    
+                    <!-- Garis Pemindai Sensor (Visual Scanner Line) -->
+                    <div class="scanner-line absolute top-0 left-0 right-0 z-10 pointer-events-none"></div>
+
+                    <!-- Elemen Video Kamera (Tersembunyi, digambar ke Canvas agar menyatu dengan efek sensor) -->
+                    <video id="webcam-video" autoplay playsinline muted class="hidden"></video>
+
+                    <!-- Canvas Utama Game & Visualisasi Titik Sensor -->
+                    <canvas id="game-canvas" class="w-full h-full block cursor-none touch-none"></canvas>
+
+                    <!-- HUD Overlay Atas (Skor, Nyawa, Timer, Indikator Napas) -->
+                    <div class="absolute top-3 left-3 right-3 z-20 flex flex-wrap items-center justify-between gap-2 pointer-events-none">
+                        <div class="flex items-center gap-2 bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-2xl border border-cyan-400/40">
+                            <i class="fa-solid fa-trophy text-amber-400 text-lg"></i>
+                            <div>
+                                <p class="text-[10px] uppercase text-slate-400 font-bold leading-none">Skor Energi</p>
+                                <p id="hud-score" class="text-xl font-extrabold text-white leading-tight">0</p>
+                            </div>
+                        </div>
+
+                        <!-- Pertanyaan Kuis jika Mode Kuis Aktif -->
+                        <div id="hud-quiz-box" class="hidden flex-1 max-w-xl bg-indigo-950/90 backdrop-blur-md px-4 py-2.5 rounded-2xl border-2 border-amber-400 text-center shadow-lg">
+                            <span id="hud-quiz-tag" class="text-[11px] font-bold uppercase tracking-wider text-amber-300 block">Pertanyaan Kuis Sensor (Arahkan Tangan ke Jawaban!)</span>
+                            <p id="hud-quiz-question" class="text-sm sm:text-base font-bold text-white">Siap menjawab pertanyaan?</p>
+                        </div>
+
+                        <div class="flex items-center gap-3 bg-slate-900/85 backdrop-blur-md px-4 py-2 rounded-2xl border border-rose-400/40">
+                            <div>
+                                <p class="text-[10px] uppercase text-slate-400 font-bold leading-none text-right">Kesehatan Paru</p>
+                                <div id="hud-lives" class="text-rose-500 text-base font-bold tracking-widest">
+                                    ❤️❤️❤️
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Overlay Start / Pause / Game Over -->
+                    <div id="game-overlay" class="absolute inset-0 z-30 bg-slate-950/85 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center">
+                        <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-cyan-500 to-emerald-400 flex items-center justify-center text-slate-950 text-4xl mb-4 shadow-xl shadow-cyan-500/30 animate-bounce">
+                            <i class="fa-solid fa-hand-sparkles"></i>
+                        </div>
+                        <h3 id="overlay-title" class="text-2xl sm:text-4xl font-bold text-white mb-2">Arena Sensor Gerak Pernapasan</h3>
+                        <p id="overlay-subtitle" class="text-slate-300 max-w-lg text-sm sm:text-base mb-6">
+                            Gunakan <strong>gerakan tangan di depan kamera</strong> (sensor optik hijau akan otomatis melacak gerakan tanganmu) ATAU gunakan <strong>sentuhan jari / mouse</strong> di layar!
+                        </p>
+
+                        <div class="flex flex-wrap justify-center gap-4">
+                            <button onclick="startGameWithCamera()" class="btn-3d px-6 py-4 rounded-2xl bg-gradient-to-r from-cyan-400 to-emerald-400 text-slate-950 font-extrabold text-base sm:text-lg flex items-center gap-3">
+                                <i class="fa-solid fa-video"></i> Main dengan Sensor Kamera
+                            </button>
+                            <button onclick="startGameTouchOnly()" class="btn-3d px-6 py-4 rounded-2xl bg-slate-800 hover:bg-slate-700 text-white border border-slate-600 font-bold text-base sm:text-lg flex items-center gap-3">
+                                <i class="fa-solid fa-hand-pointer"></i> Main Mode Sentuh / Smartboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel Kanan: Monitor Sensor & Panduan Item -->
+                <div class="lg:col-span-3 flex flex-col gap-4 justify-between">
+                    
+                    <!-- Monitor Radar Sensor (Visualisasi Sensor yang Terlihat) -->
+                    <div class="glass-panel rounded-3xl p-4 border border-cyan-500/40 flex flex-col gap-3">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-bold text-sm text-cyan-300 flex items-center gap-2">
+                                <i class="fa-solid fa-satellite-dish animate-pulse"></i> Monitor Sensor Gerak
+                            </h4>
+                            <span id="motion-intensityText" class="text-xs font-mono bg-slate-900 px-2 py-0.5 rounded text-emerald-400">AKTIF</span>
+                        </div>
+
+                        <!-- Bar Sensitivitas Gerakan -->
+                        <div>
+                            <div class="flex justify-between text-[11px] text-slate-400 mb-1">
+                                <span>Intensitas Gerakan Tangan</span>
+                                <span id="motion-percent">0%</span>
+                            </div>
+                            <div class="w-full h-3 bg-slate-900 rounded-full overflow-hidden border border-slate-700">
+                                <div id="motion-bar" class="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 transition-all duration-100" style="width: 0%"></div>
+                            </div>
+                        </div>
+
+                        <!-- Pengaturan Sensitivitas Sensor -->
+                        <div class="pt-1">
+                            <label class="flex justify-between text-[11px] text-slate-300 font-semibold mb-1">
+                                <span>Kepekaan Sensor Kamera:</span>
+                                <span id="sens-val">Tinggi</span>
+                            </label>
+                            <input type="range" id="sensitivity-slider" min="10" max="50" value="22" class="w-full accent-cyan-400 cursor-pointer" onchange="updateSensitivity(this.value)">
+                        </div>
+
+                        <!-- Toggle Visual Matrix Sensor -->
+                        <label class="flex items-center justify-between text-xs text-slate-300 bg-slate-900/70 p-2.5 rounded-xl border border-slate-800 cursor-pointer">
+                            <span>Tampilkan Jaring Titik Sensor</span>
+                            <input type="checkbox" id="chk-show-grid" checked class="accent-emerald-400 w-4 h-4">
+                        </label>
+                    </div>
+
+                    <!-- Panduan Objek Game -->
+                    <div class="glass-panel rounded-3xl p-4 border border-slate-700 flex-1 flex flex-col justify-between space-y-3">
+                        <h4 class="font-bold text-sm text-white uppercase tracking-wider border-b border-slate-700 pb-2">
+                            <i class="fa-solid fa-gamepad text-emerald-400 mr-1"></i> Target Permainan
+                        </h4>
+
+                        <div class="space-y-2.5 text-xs">
+                            <div class="flex items-center gap-3 bg-cyan-500/15 p-2.5 rounded-xl border border-cyan-500/30">
+                                <span class="w-9 h-9 rounded-full bg-cyan-500 text-slate-950 font-extrabold flex items-center justify-center shrink-0">O₂</span>
+                                <div>
+                                    <p class="font-bold text-cyan-300">Oksigen Segar (+15 Poin)</p>
+                                    <p class="text-slate-300">Arahkan tanganmu untuk menghirup $\text{O}_2$ ke paru-paru!</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3 bg-amber-500/15 p-2.5 rounded-xl border border-amber-500/30">
+                                <span class="w-9 h-9 rounded-full bg-amber-400 text-slate-950 font-extrabold flex items-center justify-center shrink-0">🍎</span>
+                                <div>
+                                    <p class="font-bold text-amber-300">Nutrisi Pencernaan (+25 Poin)</p>
+                                    <p class="text-slate-300">Sari makanan + $\text{O}_2$ menghasilkan Energi ekstra!</p>
+                                </div>
+                            </div>
+
+                            <div class="flex items-center gap-3 bg-rose-500/15 p-2.5 rounded-xl border border-rose-500/30">
+                                <span class="w-9 h-9 rounded-full bg-rose-600 text-white font-extrabold flex items-center justify-center shrink-0">💨</span>
+                                <div>
+                                    <p class="font-bold text-rose-300">Polusi Asap & Virus (-1 Nyawa)</p>
+                                    <p class="text-slate-300">Hindari agar paru-paru tidak batuk atau rusak!</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <button onclick="resetGame()" class="btn-3d w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs border border-slate-600 flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-rotate-right"></i> Mulai Ulang Skor
+                        </button>
+                    </div>
+
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- FOOTER SINGKAT -->
+    <footer class="text-center py-3 px-4 text-xs text-slate-400 border-t border-slate-800/80 glass-panel mt-auto">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            <span><strong>BioMotion IPAS</strong> • Sistem Pernapasan & Fungsi Sistem Pencernaan</span>
+            <span>Dukungan Sensor Optik Kamera & Multi-Touch (Smartboard, iPad, Laptop, HP)</span>
+        </div>
+    </footer>
+
+    <!-- ========================================== -->
+    <!-- SCRIPT LOGIKA APLIKASI, AUDIO & SENSOR     -->
+    <!-- ========================================== -->
+    <script>
+        /* ----------------------------------------------------
+         * 1. SISTEM EFEK SUara (TONE.JS SYNTH)
+         * ---------------------------------------------------- */
+        let isMuted = false;
+        let synth = null;
+
+        function initAudio() {
+            if (!synth && window.Tone) {
+                synth = new Tone.PolySynth(Tone.Synth).toDestination();
+                synth.volume.value = -8;
+            }
+        }
+
+        function playSound(type) {
+            if (isMuted) return;
+            try {
+                initAudio();
+                if (Tone.context.state !== 'running') {
+                    Tone.context.resume();
+                }
+                const now = Tone.now();
+                if (type === 'pop') {
+                    synth.triggerAttackRelease(["C5", "E5"], "16n", now);
+                } else if (type === 'bonus') {
+                    synth.triggerAttackRelease(["C5", "E5", "G5", "C6"], "8n", now);
+                } else if (type === 'damage') {
+                    synth.triggerAttackRelease(["F2", "F#2"], "8n", now);
+                } else if (type === 'click') {
+                    synth.triggerAttackRelease(["G4"], "32n", now);
+                }
+            } catch (e) {
+                // Abaikan jika audio belum diizinkan browser
+            }
+        }
+
+        function toggleMute() {
+            isMuted = !isMuted;
+            const btn = document.getElementById('btn-sound');
+            btn.innerHTML = isMuted 
+                ? '<i class="fa-solid fa-volume-xmark text-lg text-rose-400"></i>' 
+                : '<i class="fa-solid fa-volume-high text-lg text-cyan-400"></i>';
+        }
+
+        function toggleFullScreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+                document.exitFullscreen().catch(() => {});
+            }
+        }
+
+        /* ----------------------------------------------------
+         * 2. NAVIGASI TAB & MATERI ORGAN INTERAKTIF
+         * ---------------------------------------------------- */
+        function switchTab(tabName) {
+            playSound('click');
+            const sections = ['tujuan', 'materi', 'game'];
+            sections.forEach(s => {
+                document.getElementById(`section-${s}`).classList.add('hidden');
+                const btn = document.getElementById(`tab-${s}`);
+                btn.className = "nav-btn btn-3d flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm md:text-base bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600";
+            });
+
+            document.getElementById(`section-${tabName}`).classList.remove('hidden');
+            const activeBtn = document.getElementById(`tab-${tabName}`);
+            if (tabName === 'game') {
+                activeBtn.className = "nav-btn btn-3d flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm md:text-base bg-gradient-to-r from-emerald-400 to-teal-400 text-slate-950 shadow-lg";
+                resizeCanvas();
+            } else {
+                activeBtn.className = "nav-btn btn-3d flex-1 sm:flex-initial flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl font-bold text-sm md:text-base bg-cyan-500 text-slate-950 shadow-lg";
+            }
+        }
+
+        // Data Lengkap Organ Pernapasan & Hubungannya dengan Pencernaan
+        const organsData = [
+            {
+                num: 1,
+                title: "Rongga Hidung",
+                desc: "Pintu gerbang utama masuknya udara pernapasan. Di dalamnya terdapat rambut halus untuk menyaring debu dan kotoran, serta selaput lendir (mukosa) yang menghangatkan dan melembapkan udara.",
+                fact: "Berbeda dengan mulut (yang berfungsi pada sistem pencernaan untuk mengunyah makanan), hidung dirancang khusus menyaring udara agar paru-paru tetap bersih!"
+            },
+            {
+                num: 2,
+                title: "Faring & Katup Epiglotis",
+                desc: "Faring adalah persimpangan antara saluran pernapasan (ke paru-paru) dan saluran pencernaan (ke kerongkongan & lambung). Di sini terdapat katup pintar bernama Epiglotis.",
+                fact: "Saat kamu menelan makanan, katup Epiglotis otomatis menutup saluran napas agar makanan menuju lambung dan kamu tidak tersedak! Itulah sebabnya kita tidak boleh makan sambil berbicara."
+            },
+            {
+                num: 3,
+                title: "Laring & Trakea (Batang Tenggorokan)",
+                desc: "Laring berisi pita suara. Setelah itu udara melewati Trakea, yaitu pipa yang tersusun dari cincin tulang rawan dan dilapisi rambut getar (silia) untuk mendorong keluar debu yang lolos dari hidung.",
+                fact: "Jika ada debu atau remah makanan yang tidak sengaja menyentuh saluran ini, tubuh otomatis melakukan refleks BATUK untuk melontarkannya keluar."
+            },
+            {
+                num: 4,
+                title: "Bronkus & Bronkiolus",
+                desc: "Bronkus adalah percabangan dari trakea yang menuju paru-paru kanan dan paru-paru kiri. Di dalam paru-paru, bronkus bercabang lagi menjadi saluran yang lebih kecil bernama Bronkiolus.",
+                fact: "Bentuk cabang bronkus dan bronkiolus mirip seperti ranting pohon terbalik di dalam dada kita."
+            },
+            {
+                num: 5,
+                title: "Paru-Paru & Alveolus",
+                desc: "Di ujung bronkiolus terdapat gelembung-gelembung halus bernama Alveolus. Di Alveolus inilah terjadi pertukaran gas: Oksigen (O₂) diserap ke dalam darah, dan Karbon Dioksida (CO₂) dikeluarkan.",
+                fact: "Oksigen yang diserap di alveolus dibawa darah ke seluruh sel tubuh untuk membakar sari makanan hasil Sistem Pencernaan (dari usus halus) sehingga menghasilkan ENERGI!"
+            },
+            {
+                num: 6,
+                title: "Otot Diafragma",
+                desc: "Otot utama berbentuk kubah di bawah paru-paru yang membatasi rongga dada (tempat paru-paru) dan rongga perut (tempat lambung, hati, dan usus pencernaan).",
+                fact: "Saat tarik napas (Inspirasi), diafragma mendatar ke bawah sehingga paru-paru mengembang. Saat hembus napas (Ekspirasi), diafragma melengkung ke atas mendorong udara keluar."
+            }
+        ];
+
+        let currentOrganIdx = 0;
+
+        function selectOrgan(idx) {
+            playSound('click');
+            currentOrganIdx = idx;
+            const data = organsData[idx];
+            document.getElementById('organ-badge').textContent = data.num;
+            document.getElementById('organ-title').textContent = data.title;
+            document.getElementById('organ-desc').textContent = data.desc;
+            document.getElementById('organ-fact').textContent = data.fact;
+
+            // Update tombol pill
+            const pills = document.querySelectorAll('.organ-pill');
+            pills.forEach((pill, i) => {
+                if (i === idx) {
+                    pill.className = "organ-pill px-3 py-2 rounded-xl text-xs font-bold bg-cyan-500 text-slate-950 text-left truncate shadow";
+                } else {
+                    pill.className = "organ-pill px-3 py-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-200 hover:bg-slate-700 text-left truncate";
+                }
+            });
+        }
+
+        function prevOrgan() {
+            const next = (currentOrganIdx - 1 + organsData.length) % organsData.length;
+            selectOrgan(next);
+        }
+
+        function nextOrgan() {
+            const next = (currentOrganIdx + 1) % organsData.length;
+            selectOrgan(next);
+        }
+
+        function simulateBreath(type) {
+            playSound('pop');
+            const lungs = document.getElementById('svg-lungs');
+            const diaphragm = document.getElementById('svg-diaphragm');
+            const status = document.getElementById('breath-status');
+
+            if (type === 'in') {
+                lungs.style.transform = 'scale(1.1)';
+                diaphragm.setAttribute('d', 'M62,328 Q152,325 242,328');
+                status.innerHTML = '<strong class="text-cyan-300">INSPIRASI:</strong> Otot diafragma mendatar, rongga dada membesar, paru-paru mengembang, udara kaya O₂ masuk!';
+            } else {
+                lungs.style.transform = 'scale(0.92)';
+                diaphragm.setAttribute('d', 'M62,315 Q152,270 242,315');
+                status.innerHTML = '<strong class="text-rose-300">EKSPIRASI:</strong> Otot diafragma melengkung ke atas, paru-paru mengecil, udara sisa CO₂ dan uap air keluar!';
+            }
+        }
+
+        /* ----------------------------------------------------
+         * 3. ENGINE SENSOR GERAK KAMERA & GAME INTERAKTIF
+         * ---------------------------------------------------- */
+        const video = document.getElementById('webcam-video');
+        const canvas = document.getElementById('game-canvas');
+        const ctx = canvas.getContext('2d');
+
+        // Offscreen canvas kecil untuk deteksi gerakan cepat (Optical Flow / Frame Differencing)
+        const motionCanvas = document.createElement('canvas');
+        const motionWidth = 80;
+        const motionHeight = 60;
+        motionCanvas.width = motionWidth;
+        motionCanvas.height = motionHeight;
+        const motionCtx = motionCanvas.getContext('2d', { willReadFrequently: true });
+        let prevFrameData = null;
+
+        // State Sensor & Pemain
+        let cameraActive = false;
+        let mediaStream = null;
+        let motionThreshold = 22; // Sensitivitas sensor
+        let activeMotionPoints = []; // Titik-titik sensor yang menyala di layar
+
+        // Kursor Tangan Virtual / Perisai Alveolus Pemain
+        let handCursor = {
+            x: 400,
+            y: 250,
+            targetX: 400,
+            targetY: 250,
+            radius: 46
+        };
+
+        // State Game
+        let gameRunning = false;
+        let gameMode = 'catch'; // 'catch' atau 'quiz'
+        let score = 0;
+        let lives = 3;
+        let fallingItems = [];
+        let particles = [];
+        let floatingTexts = [];
+        let lungScale = 1;
+
+        // Data Kuis Interaktif (Menggabungkan Sistem Pernapasan & Tujuan Pembelajaran Sistem Pencernaan)
+        const quizQuestions = [
+            {
+                q: "Apa fungsi utama Sistem Pencernaan manusia?",
+                options: [
+                    { text: "Mengolah makanan & menyerap nutrisi", correct: true },
+                    { text: "Menyaring debu dengan bulu hidung", correct: false },
+                    { text: "Memompa darah ke bilik jantung", correct: false }
+                ]
+            },
+            {
+                q: "Di bagian manakah pertukaran gas Oksigen (O₂) dan Karbon Dioksida (CO₂) terjadi?",
+                options: [
+                    { text: "Kerongkongan", correct: false },
+                    { text: "Alveolus di Paru-paru", correct: true },
+                    { text: "Usus Besar", correct: false }
+                ]
+            },
+            {
+                q: "Katup yang mencegah makanan dari saluran pencernaan masuk ke saluran pernapasan adalah...",
+                options: [
+                    { text: "Epiglotis", correct: true },
+                    { text: "Bronkiolus", correct: false },
+                    { text: "Diafragma", correct: false }
+                ]
+            },
+            {
+                q: "Organ sistem pencernaan yang berfungsi menyerap sari-sari makanan untuk dibakar bersama Oksigen adalah...",
+                options: [
+                    { text: "Trakea", correct: false },
+                    { text: "Usus Halus", correct: true },
+                    { text: "Rongga Hidung", correct: false }
+                ]
+            },
+            {
+                q: "Saat kita menarik napas (Inspirasi), bagaimana posisi otot Diafragma?",
+                options: [
+                    { text: "Berkontraksi menjadi datar", correct: true },
+                    { text: "Berhenti bergerak", correct: false },
+                    { text: "Mencerna vitamin", correct: false }
+                ]
+            },
+            {
+                q: "Oksigen dari sistem pernapasan + Sari Makanan dari sistem pencernaan menghasilkan...",
+                options: [
+                    { text: "Debu & Kotoran", correct: false },
+                    { text: "Energi untuk tubuh beraktivitas", correct: true },
+                    { text: "Asap Polusi", correct: false }
+                ]
+            }
+        ];
+        let currentQuizIndex = 0;
+        let quizBubbles = [];
+        let quizCooldown = 0;
+
+        function resizeCanvas() {
+            const rect = canvas.parentElement.getBoundingClientRect();
+            canvas.width = rect.width || 800;
+            canvas.height = rect.height || 500;
+            handCursor.x = canvas.width / 2;
+            handCursor.y = canvas.height * 0.7;
+            handCursor.targetX = handCursor.x;
+            handCursor.targetY = handCursor.y;
+            if (gameMode === 'quiz') {
+                setupQuizBubbles();
+            }
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        function updateSensitivity(val) {
+            // Semakin kecil threshold, semakin sensitif
+            motionThreshold = 60 - parseInt(val);
+            const label = document.getElementById('sens-val');
+            if (motionThreshold < 20) label.textContent = "Sangat Tinggi";
+            else if (motionThreshold < 32) label.textContent = "Tinggi";
+            else label.textContent = "Normal";
+        }
+
+        // Aktifkan / Matikan Kamera Sensor
+        async function toggleCameraSensor() {
+            const btn = document.getElementById('btn-camera');
+            const dot = document.getElementById('sensor-dot');
+            const label = document.getElementById('sensor-label');
+
+            if (cameraActive) {
+                stopCamera();
+                btn.innerHTML = '<i class="fa-solid fa-camera"></i> <span>Aktifkan Sensor Kamera</span>';
+                btn.className = "btn-3d px-4 py-2 rounded-xl font-bold text-xs sm:text-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 flex items-center gap-2";
+                dot.className = "w-3 h-3 rounded-full bg-amber-400";
+                label.textContent = "Sensor: Mode Sentuh / Papan Interaktif Aktif";
+                return false;
+            }
+
+            try {
+                mediaStream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
+                    audio: false
+                });
+                video.srcObject = mediaStream;
+                await video.play();
+                cameraActive = true;
+                prevFrameData = null;
+
+                btn.innerHTML = '<i class="fa-solid fa-video-slash"></i> <span>Matikan Kamera</span>';
+                btn.className = "btn-3d px-4 py-2 rounded-xl font-bold text-xs sm:text-sm bg-rose-500 hover:bg-rose-400 text-white flex items-center gap-2";
+                dot.className = "w-3 h-3 rounded-full bg-emerald-400 animate-ping";
+                label.textContent = "Sensor Optik Kamera AKTIF: Lambaikan Tanganmu!";
+                return true;
+            } catch (err) {
+                cameraActive = false;
+                dot.className = "w-3 h-3 rounded-full bg-amber-400";
+                label.textContent = "Kamera tidak diizinkan/tersedia. Mode Sentuh & Mouse Aktif!";
+                return false;
+            }
+        }
+
+        function stopCamera() {
+            if (mediaStream) {
+                mediaStream.getTracks().forEach(t => t.stop());
+                mediaStream = null;
+            }
+            cameraActive = false;
+            activeMotionPoints = [];
+        }
+
+        async function startGameWithCamera() {
+            playSound('bonus');
+            resizeCanvas();
+            if (!cameraActive) {
+                await toggleCameraSensor();
+            }
+            document.getElementById('game-overlay').classList.add('hidden');
+            resetGame();
+            gameRunning = true;
+        }
+
+        function startGameTouchOnly() {
+            playSound('bonus');
+            resizeCanvas();
+            document.getElementById('game-overlay').classList.add('hidden');
+            resetGame();
+            gameRunning = true;
+        }
+
+        function setGameMode(mode) {
+            playSound('click');
+            gameMode = mode;
+            const btnCatch = document.getElementById('mode-catch');
+            const btnQuiz = document.getElementById('mode-quiz');
+            const quizBox = document.getElementById('hud-quiz-box');
+
+            if (mode === 'catch') {
+                btnCatch.className = "btn-3d px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm bg-emerald-500 text-slate-950 flex items-center gap-2";
+                btnQuiz.className = "btn-3d px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm bg-slate-800 text-slate-200 border border-slate-600 flex items-center gap-2";
+                quizBox.classList.add('hidden');
+            } else {
+                btnQuiz.className = "btn-3d px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm bg-amber-400 text-slate-950 flex items-center gap-2";
+                btnCatch.className = "btn-3d px-3.5 py-2 rounded-xl font-bold text-xs sm:text-sm bg-slate-800 text-slate-200 border border-slate-600 flex items-center gap-2";
+                quizBox.classList.remove('hidden');
+                loadQuizQuestion();
+            }
+        }
+
+        function loadQuizQuestion() {
+            const qData = quizQuestions[currentQuizIndex % quizQuestions.length];
+            document.getElementById('hud-quiz-question').textContent = qData.q;
+            setupQuizBubbles();
+        }
+
+        function setupQuizBubbles() {
+            const qData = quizQuestions[currentQuizIndex % quizQuestions.length];
+            quizBubbles = [];
+            const count = qData.options.length;
+            const spacing = canvas.width / (count + 1);
+
+            qData.options.forEach((opt, index) => {
+                quizBubbles.push({
+                    x: spacing * (index + 1),
+                    y: canvas.height * 0.42,
+                    r: Math.min(72, Math.max(54, canvas.width * 0.08)),
+                    text: opt.text,
+                    correct: opt.correct,
+                    hoverProgress: 0, // Terisi saat tangan menahan di atas balon jawaban
+                    label: String.fromCharCode(65 + index)
+                });
+            });
+        }
+
+        function resetGame() {
+            score = 0;
+            lives = 3;
+            fallingItems = [];
+            particles = [];
+            floatingTexts = [];
+            updateHUD();
+            if (gameMode === 'quiz') {
+                loadQuizQuestion();
+            }
+        }
+
+        function updateHUD() {
+            document.getElementById('hud-score').textContent = score;
+            document.getElementById('hud-lives').textContent = '❤️'.repeat(Math.max(0, lives)) + '🖤'.repeat(Math.max(0, 3 - lives));
+        }
+
+        /* ----------------------------------------------------
+         * 4. DETEKSI GERAKAN KAMERA (OPTICAL MOTION SENSOR)
+         * ---------------------------------------------------- */
+        function processCameraMotion() {
+            if (!cameraActive || video.readyState < 2) return;
+
+            // Gambar frame video secara mirror (cermin) ke motionCanvas kecil
+            motionCtx.save();
+            motionCtx.scale(-1, 1);
+            motionCtx.drawImage(video, -motionWidth, 0, motionWidth, motionHeight);
+            motionCtx.restore();
+
+            const currentFrame = motionCtx.getImageData(0, 0, motionWidth, motionHeight);
+            const data = currentFrame.data;
+
+            activeMotionPoints = [];
+            let sumX = 0;
+            let sumY = 0;
+            let weightSum = 0;
+
+            if (prevFrameData) {
+                // Pindai grid piksel
+                for (let y = 2; y < motionHeight - 2; y += 2) {
+                    for (let x = 2; x < motionWidth - 2; x += 2) {
+                        const i = (y * motionWidth + x) * 4;
+                        const rDiff = Math.abs(data[i] - prevFrameData[i]);
+                        const gDiff = Math.abs(data[i + 1] - prevFrameData[i + 1]);
+                        const bDiff = Math.abs(data[i + 2] - prevFrameData[i + 2]);
+                        const diff = (rDiff + gDiff + bDiff) / 3;
+
+                        if (diff > motionThreshold) {
+                            const screenX = (x / motionWidth) * canvas.width;
+                            const screenY = (y / motionHeight) * canvas.height;
+                            activeMotionPoints.push({
+                                x: screenX,
+                                y: screenY,
+                                intensity: Math.min(1, diff / 100)
+                            });
+
+                            sumX += screenX * diff;
+                            sumY += screenY * diff;
+                            weightSum += diff;
+                        }
+                    }
+                }
+            }
+
+            // Simpan frame saat ini untuk perbandingan frame berikutnya
+            prevFrameData = new Uint8ClampedArray(data);
+
+            // Update Bar Intensitas Gerakan di Panel Kanan
+            const percent = Math.min(100, Math.round((activeMotionPoints.length / 120) * 100));
+            document.getElementById('motion-percent').textContent = `${percent}%`;
+            document.getElementById('motion-bar').style.width = `${percent}%`;
+
+            // Jika ada gerakan tangan yang cukup jelas, gerakkan Perisai Sensor ke pusat gerakan tangan
+            if (activeMotionPoints.length > 4 && weightSum > 0) {
+                handCursor.targetX = sumX / weightSum;
+                handCursor.targetY = sumY / weightSum;
+            }
+        }
+
+        /* ----------------------------------------------------
+         * 5. DUKUNGAN SENTUHAN JARI / MOUSE (SMARTBOARD, IPAD, HP)
+         * ---------------------------------------------------- */
+        function handlePointerMove(clientX, clientY) {
+            const rect = canvas.getBoundingClientRect();
+            handCursor.targetX = ((clientX - rect.left) / rect.width) * canvas.width;
+            handCursor.targetY = ((clientY - rect.top) / rect.height) * canvas.height;
+
+            // Buat titik sensor buatan saat jari menyentuh layar
+            if (!cameraActive) {
+                activeMotionPoints.push({
+                    x: handCursor.targetX + (Math.random() - 0.5) * 30,
+                    y: handCursor.targetY + (Math.random() - 0.5) * 30,
+                    intensity: 0.9
+                });
+                if (activeMotionPoints.length > 25) activeMotionPoints.shift();
+                document.getElementById('motion-percent').textContent = `85%`;
+                document.getElementById('motion-bar').style.width = `85%`;
+            }
+        }
+
+        canvas.addEventListener('mousemove', (e) => handlePointerMove(e.clientX, e.clientY));
+        canvas.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            if (e.touches.length > 0) {
+                handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+        canvas.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) {
+                handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: true });
+
+        /* ----------------------------------------------------
+         * 6. SPAWN OBJEK PERMAINAN & PARTIKEL
+         * ---------------------------------------------------- */
+        function spawnFallingItem() {
+            const rand = Math.random();
+            let type = 'o2';
+            let label = 'O₂';
+            let sub = 'Oksigen';
+            let color = '#38bdf8';
+            let points = 15;
+
+            if (rand < 0.52) {
+                type = 'o2';
+                label = 'O₂';
+                sub = 'Oksigen';
+                color = '#38bdf8';
+                points = 15;
+            } else if (rand < 0.75) {
+                type = 'nutrisi';
+                label = '🍎';
+                sub = 'Sari Makanan';
+                color = '#fbbf24';
+                points = 25;
+            } else {
+                type = 'polusi';
+                label = Math.random() > 0.5 ? '💨' : '🦠';
+                sub = 'Polusi/Kuman';
+                color = '#f43f5e';
+                points = -1;
+            }
+
+            const radius = 30;
+            fallingItems.push({
+                x: radius + Math.random() * (canvas.width - radius * 2),
+                y: -40,
+                vy: 1.8 + Math.random() * 1.8,
+                vx: (Math.random() - 0.5) * 1.2,
+                radius: radius,
+                type: type,
+                label: label,
+                sub: sub,
+                color: color,
+                points: points
+            });
+        }
+
+        function createBurst(x, y, color, text) {
+            for (let i = 0; i < 14; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 2 + Math.random() * 4;
+                particles.push({
+                    x: x,
+                    y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed,
+                    alpha: 1,
+                    color: color,
+                    size: 4 + Math.random() * 4
+                });
+            }
+            if (text) {
+                floatingTexts.push({
+                    x: x,
+                    y: y,
+                    text: text,
+                    color: color,
+                    alpha: 1
+                });
+            }
+        }
+
+        /* ----------------------------------------------------
+         * 7. RENDER VISUAL SENSOR & LOOP UTAMA GAME
+         * ---------------------------------------------------- */
+        function drawSensorGridAndCamera() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // 1. Jika Kamera Aktif, tampilkan video kamera secara mirror sebagai background AR
+            if (cameraActive && video.readyState >= 2) {
+                ctx.save();
+                ctx.scale(-1, 1);
+                ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+                ctx.restore();
+
+                // Lapisan tint gelap tipis agar elemen game & sensor terlihat jelas dan futuristik
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.45)';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            } else {
+                // Background Grid Biologi Futuristik jika tanpa kamera
+                const grad = ctx.createRadialGradient(
+                    canvas.width / 2, canvas.height / 2, 50,
+                    canvas.width / 2, canvas.height / 2, canvas.width
+                );
+                grad.addColorStop(0, '#0f172a');
+                grad.addColorStop(1, '#020617');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            }
+
+            // 2. Gambar Jaring Matriks Sensor (Terlihat jelas bahwa sensor sedang membaca area)
+            const showGrid = document.getElementById('chk-show-grid')?.checked;
+            if (showGrid) {
+                ctx.strokeStyle = 'rgba(56, 189, 248, 0.14)';
+                ctx.lineWidth = 1;
+                const step = 45;
+                for (let x = 0; x < canvas.width; x += step) {
+                    ctx.beginPath();
+                    ctx.moveTo(x, 0);
+                    ctx.lineTo(x, canvas.height);
+                    ctx.stroke();
+                }
+                for (let y = 0; y < canvas.height; y += step) {
+                    ctx.beginPath();
+                    ctx.moveTo(0, y);
+                    ctx.lineTo(canvas.width, y);
+                    ctx.stroke();
+                }
+
+                // Gambar Titik-Titik Hijau/Biru Sensor di Bagian Tubuh/Tangan yang Bergerak
+                for (let i = 0; i < activeMotionPoints.length; i++) {
+                    const pt = activeMotionPoints[i];
+                    ctx.fillStyle = `rgba(52, 211, 153, ${0.4 + pt.intensity * 0.6})`;
+                    ctx.beginPath();
+                    ctx.arc(pt.x, pt.y, 6 + pt.intensity * 6, 0, Math.PI * 2);
+                    ctx.fill();
+
+                    ctx.strokeStyle = 'rgba(16, 185, 129, 0.9)';
+                    ctx.strokeRect(pt.x - 8, pt.y - 8, 16, 16);
+                }
+            }
+
+            // 3. Gambar Visual Paru-Paru Virtual di Bagian Bawah Tengah Layar
+            lungScale += (1 - lungScale) * 0.08;
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height - 45);
+            ctx.scale(lungScale, lungScale);
+            ctx.fillStyle = 'rgba(244, 63, 94, 0.28)';
+            ctx.strokeStyle = 'rgba(251, 113, 133, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.roundRect(-85, -30, 170, 50, 20);
+            ctx.fill();
+            ctx.stroke();
+            ctx.fillStyle = '#fda4af';
+            ctx.font = 'bold 12px Nunito';
+            ctx.textAlign = 'center';
+            ctx.fillText('🫁 ZONA PARU-PARU & ENERGI SEL', 0, -2);
+            ctx.restore();
+        }
+
+        function drawHandSensorCursor() {
+            // Interpolasi halus posisi sensor tangan
+            handCursor.x += (handCursor.targetX - handCursor.x) * 0.25;
+            handCursor.y += (handCursor.targetY - handCursor.y) * 0.25;
+
+            ctx.save();
+            ctx.translate(handCursor.x, handCursor.y);
+
+            // Lingkaran Radar Luar
+            ctx.beginPath();
+            ctx.arc(0, 0, handCursor.radius + 8, 0, Math.PI * 2);
+            ctx.strokeStyle = 'rgba(52, 211, 153, 0.85)';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([8, 6]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // Lingkaran Inti Penangkap
+            const grad = ctx.createRadialGradient(0, 0, 5, 0, 0, handCursor.radius);
+            grad.addColorStop(0, 'rgba(56, 189, 248, 0.55)');
+            grad.addColorStop(1, 'rgba(16, 185, 129, 0.15)');
+            ctx.fillStyle = grad;
+            ctx.beginPath();
+            ctx.arc(0, 0, handCursor.radius, 0, Math.PI * 2);
+            ctx.fill();
+
+            // Ikon Tangan / Target Sensor di Tengah
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 24px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('✋', 0, -2);
+
+            ctx.fillStyle = '#6ee7b7';
+            ctx.font = 'bold 10px Nunito';
+            ctx.fillText('SENSOR AKTIF', 0, handCursor.radius + 20);
+
+            ctx.restore();
+        }
+
+        function updateAndDrawCatchMode() {
+            if (Math.random() < 0.035 && fallingItems.length < 7) {
+                spawnFallingItem();
+            }
+
+            for (let i = fallingItems.length - 1; i >= 0; i--) {
+                const item = fallingItems[i];
+                item.y += item.vy;
+                item.x += item.vx;
+
+                // Pantulan dinding samping
+                if (item.x < item.radius || item.x > canvas.width - item.radius) {
+                    item.vx *= -1;
+                }
+
+                // Gambar Molekul / Objek
+                ctx.save();
+                ctx.translate(item.x, item.y);
+
+                ctx.beginPath();
+                ctx.arc(0, 0, item.radius, 0, Math.PI * 2);
+                ctx.fillStyle = item.color + '33';
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = item.color;
+                ctx.stroke();
+
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 20px Fredoka';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(item.label, 0, -3);
+
+                ctx.font = 'bold 10px Nunito';
+                ctx.fillStyle = '#e2e8f0';
+                ctx.fillText(item.sub, 0, 18);
+                ctx.restore();
+
+                // Cek Tumbukan dengan Sensor Tangan Pemain
+                const dx = item.x - handCursor.x;
+                const dy = item.y - handCursor.y;
+                const dist = Math.hypot(dx, dy);
+
+                if (dist < item.radius + handCursor.radius) {
+                    if (item.type === 'o2') {
+                        score += item.points;
+                        lungScale = 1.25;
+                        playSound('pop');
+                        createBurst(item.x, item.y, '#38bdf8', '+15 Oksigen!');
+                    } else if (item.type === 'nutrisi') {
+                        score += item.points;
+                        lungScale = 1.3;
+                        playSound('bonus');
+                        createBurst(item.x, item.y, '#fbbf24', '+25 Energi Pencernaan!');
+                    } else {
+                        lives--;
+                        playSound('damage');
+                        createBurst(item.x, item.y, '#f43f5e', 'Uhuk! Polusi!');
+                        if (lives <= 0) {
+                            triggerGameOver();
+                        }
+                    }
+                    updateHUD();
+                    fallingItems.splice(i, 1);
+                    continue;
+                }
+
+                // Hapus jika lewat batas bawah
+                if (item.y > canvas.height + 50) {
+                    fallingItems.splice(i, 1);
+                }
+            }
+        }
+
+        function updateAndDrawQuizMode() {
+            if (quizCooldown > 0) {
+                quizCooldown--;
+                return;
+            }
+
+            quizBubbles.forEach((b) => {
+                // Cek apakah sensor tangan berada di atas gelembung jawaban
+                const dist = Math.hypot(handCursor.x - b.x, handCursor.y - b.y);
+                const isHovering = dist < (b.r + handCursor.radius * 0.65);
+
+                if (isHovering) {
+                    b.hoverProgress = Math.min(100, b.hoverProgress + 2.2);
+                } else {
+                    b.hoverProgress = Math.max(0, b.hoverProgress - 1.5);
+                }
+
+                // Gambar Gelembung Jawaban
+                ctx.save();
+                ctx.translate(b.x, b.y);
+
+                ctx.beginPath();
+                ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+                ctx.fillStyle = isHovering ? 'rgba(30, 64, 175, 0.85)' : 'rgba(15, 23, 42, 0.85)';
+                ctx.fill();
+                ctx.lineWidth = 3;
+                ctx.strokeStyle = isHovering ? '#38bdf8' : '#64748b';
+                ctx.stroke();
+
+                // Lingkaran Progres Sensor Mengunci Jawaban
+                if (b.hoverProgress > 0) {
+                    ctx.beginPath();
+                    ctx.arc(0, 0, b.r + 6, -Math.PI / 2, (-Math.PI / 2) + (Math.PI * 2 * (b.hoverProgress / 100)));
+                    ctx.strokeStyle = '#34d399';
+                    ctx.lineWidth = 6;
+                    ctx.stroke();
+                }
+
+                // Label A / B / C
+                ctx.fillStyle = '#fbbf24';
+                ctx.font = 'bold 16px Fredoka';
+                ctx.textAlign = 'center';
+                ctx.fillText(`Pilihan ${b.label}`, 0, -b.r + 24);
+
+                // Teks Jawaban (Wrap sederhana)
+                ctx.fillStyle = '#ffffff';
+                ctx.font = 'bold 13px Nunito';
+                wrapText(ctx, b.text, 0, -4, b.r * 1.65, 16);
+
+                ctx.restore();
+
+                // Jika progres penuh 100%, jawaban terpilih!
+                if (b.hoverProgress >= 100 && quizCooldown === 0) {
+                    quizCooldown = 45;
+                    if (b.correct) {
+                        score += 50;
+                        playSound('bonus');
+                        createBurst(b.x, b.y, '#34d399', 'BENAR! +50');
+                        currentQuizIndex++;
+                        setTimeout(() => loadQuizQuestion(), 700);
+                    } else {
+                        lives--;
+                        playSound('damage');
+                        createBurst(b.x, b.y, '#f43f5e', 'Kurang Tepat!');
+                        b.hoverProgress = 0;
+                        if (lives <= 0) {
+                            triggerGameOver();
+                        }
+                    }
+                    updateHUD();
+                }
+            });
+        }
+
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            const lines = [];
+            for (let n = 0; n < words.length; n++) {
+                const testLine = line + words[n] + ' ';
+                const metrics = context.measureText(testLine);
+                if (metrics.width > maxWidth && n > 0) {
+                    lines.push(line);
+                    line = words[n] + ' ';
+                } else {
+                    line = testLine;
+                }
+            }
+            lines.push(line);
+            const startY = y - ((lines.length - 1) * lineHeight) / 2;
+            lines.forEach((l, i) => {
+                context.fillText(l.trim(), x, startY + i * lineHeight);
+            });
+        }
+
+        function updateAndDrawEffects() {
+            // Partikel
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.x += p.vx;
+                p.y += p.vy;
+                p.alpha -= 0.03;
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+                ctx.fillStyle = p.color;
+                ctx.globalAlpha = p.alpha;
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+
+            // Teks Melayang
+            for (let i = floatingTexts.length - 1; i >= 0; i--) {
+                const ft = floatingTexts[i];
+                ft.y -= 1.5;
+                ft.alpha -= 0.025;
+                if (ft.alpha <= 0) {
+                    floatingTexts.splice(i, 1);
+                    continue;
+                }
+                ctx.save();
+                ctx.globalAlpha = ft.alpha;
+                ctx.font = 'bold 20px Fredoka';
+                ctx.fillStyle = ft.color;
+                ctx.textAlign = 'center';
+                ctx.fillText(ft.text, ft.x, ft.y);
+                ctx.restore();
+            }
+        }
+
+        function triggerGameOver() {
+            gameRunning = false;
+            const overlay = document.getElementById('game-overlay');
+            document.getElementById('overlay-title').textContent = `Permainan Selesai! Skor: ${score}`;
+            document.getElementById('overlay-subtitle').textContent =
+                "Hebat! Kamu telah berlatih menjaga kesehatan paru-paru dan memahami kerjasama Sistem Pernapasan serta fungsi Sistem Pencernaan. Ingin bermain lagi?";
+            overlay.classList.remove('hidden');
+        }
+
+        // Loop Animasi Utama
+        function gameLoop() {
+            processCameraMotion();
+            drawSensorGridAndCamera();
+
+            if (gameRunning) {
+                if (gameMode === 'catch') {
+                    updateAndDrawCatchMode();
+                } else {
+                    updateAndDrawQuizMode();
+                }
+            }
+
+            updateAndDrawEffects();
+            drawHandSensorCursor();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function closeWelcomePopup() {
+            playSound('bonus');
+            const popup = document.getElementById('welcome-popup');
+            const card = document.getElementById('welcome-popup-card');
+            card.classList.remove('scale-100', 'opacity-100');
+            card.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                popup.classList.add('hidden');
+            }, 250);
+        }
+
+        window.onload = function () {
+            resizeCanvas();
+            selectOrgan(0);
+            gameLoop();
+
+            // Jalankan Splash Screen selama 6 detik, lalu tampilkan Pop-up Awal
+            const splash = document.getElementById('splash-screen');
+            const popup = document.getElementById('welcome-popup');
+            const popupCard = document.getElementById('welcome-popup-card');
+
+            setTimeout(() => {
+                if (splash) {
+                    splash.style.opacity = '0';
+                    setTimeout(() => {
+                        splash.classList.add('hidden');
+                        // Munculkan Pop-up Awal setelah Splash Screen selesai
+                        if (popup && popupCard) {
+                            popup.classList.remove('hidden');
+                            setTimeout(() => {
+                                popupCard.classList.remove('scale-95', 'opacity-0');
+                                popupCard.classList.add('scale-100', 'opacity-100');
+                            }, 50);
+                        }
+                    }, 600);
+                }
+            }, 6000);
+        };
+    </script>
+</body>
+</html>
